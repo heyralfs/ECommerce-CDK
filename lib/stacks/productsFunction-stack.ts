@@ -17,7 +17,7 @@ export class ProductsFunctionStack extends cdk.Stack {
 				handler: "handler",
 				bundling: {
 					minify: false,
-					sourceMap: true,
+					sourceMap: false,
 				},
 				tracing: lambda.Tracing.ACTIVE,
 				memorySize: 128,
