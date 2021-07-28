@@ -27,7 +27,8 @@ export class PipelineStack extends cdk.Stack {
 				sourceArtifact,
 				cloudAssemblyArtifact,
 				// installCommand: "npx nmp@7 install && ..." -- se npm -v > 7
-				installCommand: "npm install -g aws-cdk",
+				installCommand:
+					"npx npm@6 install && npm install -g typescript && npm install -g aws-cdk",
 				buildCommand: "npm run build",
 				environment: {
 					privileged: true, // permite execução de uma imagem de docker no momento de build
