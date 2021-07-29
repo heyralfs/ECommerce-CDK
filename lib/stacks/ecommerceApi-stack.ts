@@ -50,7 +50,7 @@ export class ECommerceApiStack extends cdk.Stack {
 		/**
 		 * Api Resources & Methods
 		 */
-		// /producs
+		// lambda integration
 		const productsFunctionIntegration = new apigateway.LambdaIntegration(
 			productsHandler,
 			{
@@ -59,16 +59,37 @@ export class ECommerceApiStack extends cdk.Stack {
 				},
 			}
 		);
+		// /products
 		const productsResource = api.root.addResource("products");
+
+		// GET /products
 		productsResource.addMethod("GET", productsFunctionIntegration);
 
-		this.urlOutput = new cdk.CfnOutput(this, "url", {
-			exportName: "url",
-			value: api.url,
-		});
+		// POST /products
+		productsResource.addMethod("POST", productsFunctionIntegration);
+
+		// /products/{id}
+		const productsIdResource = productsResource.addResource("{id}");
+
+		// GET /products/{id}
+		productsIdResource.addMethod("GET", productsFunctionIntegration);
+
+		// PUT /products/{id}
+		productsIdResource.addMethod("PUT", productsFunctionIntegration);
+
+		// DELETE /products/{id}
+		productsIdResource.addMethod("DELETE", productsFunctionIntegration);
 
 		// /orders
 		// /events
 		// /invoices
+
+		/**
+		 * Output
+		 */
+		this.urlOutput = new cdk.CfnOutput(this, "url", {
+			exportName: "url",
+			value: api.url,
+		});
 	}
 }
