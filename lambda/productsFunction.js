@@ -11,7 +11,7 @@ AWS.config.update({
 	region: awsRegion,
 });
 
-const ddbClient = new AWS.Dynamodb.DocumentClient();
+const ddbClient = new AWS.DynamoDB.DocumentClient();
 
 exports.handler = async function (event, context) {
 	const method = event.httpMethod;

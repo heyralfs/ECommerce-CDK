@@ -2,7 +2,6 @@ import * as cdk from "@aws-cdk/core";
 import * as apigateway from "@aws-cdk/aws-apigateway";
 import * as lambdaNodeJS from "@aws-cdk/aws-lambda-nodejs";
 import * as cwlogs from "@aws-cdk/aws-logs";
-import { CfnAccount } from "@aws-cdk/aws-apigateway";
 
 export class ECommerceApiStack extends cdk.Stack {
 	readonly urlOutput: cdk.CfnOutput;
