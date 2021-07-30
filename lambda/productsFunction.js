@@ -6,7 +6,7 @@ const xRay = AWSXRay.captureAWS(require("aws-sdk"));
 
 const productsDdb = process.env.PRODUCTS_DDB;
 const awsRegion = process.env.AWS_REGION;
-const productEventsFunctionName = process.env.PRODUC_EVENTS_FUNCTION_NAME;
+const productEventsFunctionName = process.env.PRODUCT_EVENTS_FUNCTION_NAME;
 
 AWS.config.update({
 	region: awsRegion,
