@@ -116,10 +116,10 @@ exports.handler = async function (event, context) {
 				);
 
 				// aguarda as duas promise serem resolvidas
-				const results = await Promise.all(
+				const results = await Promise.all([
 					deleteResultPromise,
-					eventResultPromise
-				);
+					eventResultPromise,
+				]);
 				console.log(results[0]);
 				console.log(results[1]);
 
