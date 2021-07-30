@@ -26,7 +26,7 @@ exports.handler = async function (event, context) {
 	context.succeed(
 		JSON.stringify({
 			productEventCreated: true,
-			message: "ok",
+			message: "ok ",
 		})
 	);
 };
