@@ -2,6 +2,8 @@ import * as cdk from "@aws-cdk/core";
 import { ProductsFunctionStack } from "../stacks/productsFunction-stack";
 import { ECommerceApiStack } from "../stacks/ecommerceApi-stack";
 import { ProductsDdbStack } from "../stacks/productsDdb-stack";
+import { EventsDdbStack } from "../stacks/eventsDdb-stack";
+import { ProductEventsFunctionStack } from "../stacks/productEventsFunction-stack";
 
 export class ECommerceStage extends cdk.Stage {
 	public readonly urlOutput: cdk.CfnOutput;
@@ -14,18 +16,47 @@ export class ECommerceStage extends cdk.Stage {
 			["team"]: "heyralfs",
 		};
 
+		/**
+		 * PRODUCTS DDB STACK
+		 */
 		const productsDdbStack = new ProductsDdbStack(this, "ProductsDdb", {
 			tags,
 		});
 
+		/**
+		 * EVENTS DDB STACK
+		 */
+		const eventsDdbStack = new EventsDdbStack(this, "EventsDdb", { tags });
+
+		/**
+		 * PRODUCT EVENTS FUNCTION STACK
+		 */
+		const productEventsFunctionStack = new ProductEventsFunctionStack(
+			this,
+			"ProductEventsFunction",
+			eventsDdbStack.table,
+			{
+				tags,
+			}
+		);
+		productEventsFunctionStack.addDependency(eventsDdbStack);
+
+		/**
+		 * PRODUCTS FUNCTION STACK
+		 */
 		const productsFunctionStack = new ProductsFunctionStack(
 			this,
 			"ProductsFunction",
 			productsDdbStack.table,
+			productEventsFunctionStack.handler,
 			{ tags }
 		);
 		productsFunctionStack.addDependency(productsDdbStack);
+		productsFunctionStack.addDependency(productEventsFunctionStack);
 
+		/**
+		 * ECOMMERCE API STACK
+		 */
 		const eCommerceApiStack = new ECommerceApiStack(
 			this,
 			"ECommerceApi",
@@ -34,6 +65,9 @@ export class ECommerceStage extends cdk.Stage {
 		);
 		eCommerceApiStack.addDependency(productsFunctionStack);
 
+		/**
+		 * OUTPUT
+		 */
 		this.urlOutput = eCommerceApiStack.urlOutput;
 	}
 }

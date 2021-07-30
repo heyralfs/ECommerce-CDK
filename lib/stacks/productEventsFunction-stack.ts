@@ -3,24 +3,23 @@ import * as lambda from "@aws-cdk/aws-lambda";
 import * as lambdaNodeJS from "@aws-cdk/aws-lambda-nodejs";
 import * as dynamodb from "@aws-cdk/aws-dynamodb";
 
-export class ProductsFunctionStack extends cdk.Stack {
+export class ProductEventsFunctionStack extends cdk.Stack {
 	readonly handler: lambdaNodeJS.NodejsFunction;
 
 	constructor(
 		scope: cdk.Construct,
 		id: string,
-		productsDdb: dynamodb.Table,
-		productEventsFunction: lambdaNodeJS.NodejsFunction,
+		eventsDdb: dynamodb.Table,
 		props?: cdk.StackProps
 	) {
 		super(scope, id, props);
 
 		this.handler = new lambdaNodeJS.NodejsFunction(
 			this,
-			"ProductsFunction",
+			"ProductEventsFunction",
 			{
-				functionName: "ProductsFunction",
-				entry: "lambda/productsFunction.js",
+				functionName: "ProductEventsFunction",
+				entry: "lambda/productEventsFunction.js",
 				handler: "handler",
 				bundling: {
 					minify: false,
@@ -30,16 +29,12 @@ export class ProductsFunctionStack extends cdk.Stack {
 				memorySize: 128,
 				timeout: cdk.Duration.seconds(30),
 				environment: {
-					PRODUCTS_DDB: productsDdb.tableName,
-					PRODUCT_EVENTS_FUNCTION_NAME:
-						productEventsFunction.functionName,
+					EVENTS_DDB: eventsDdb.tableName,
 				},
 			}
 		);
 
-		// concede permissões à lambda de leitura e escrita na tabela
-		productsDdb.grantReadWriteData(this.handler);
-		// concede permissões à lambda de invocar outra lambda
-		productEventsFunction.grantInvoke(this.handler);
+		// concede permissão à lambda de escrita na tabela
+		eventsDdb.grantWriteData(this.handler);
 	}
 }

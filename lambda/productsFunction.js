@@ -6,12 +6,14 @@ const xRay = AWSXRay.captureAWS(require("aws-sdk"));
 
 const productsDdb = process.env.PRODUCTS_DDB;
 const awsRegion = process.env.AWS_REGION;
+const productEventsFunctionName = process.env.PRODUC_EVENTS_FUNCTION_NAME;
 
 AWS.config.update({
 	region: awsRegion,
 });
 
 const ddbClient = new AWS.DynamoDB.DocumentClient();
+const lambdaClient = new AWS.Lambda();
 
 exports.handler = async function (event, context) {
 	const method = event.httpMethod;
@@ -41,6 +43,14 @@ exports.handler = async function (event, context) {
 
 			await createProduct(product);
 
+			const response = await createProductEvent(
+				product,
+				"PRODUCT_CREATED",
+				"matilde",
+				lambdaRequestId
+			);
+			console.log(response);
+
 			return {
 				statusCode: 201,
 				body: JSON.stringify(product),
@@ -69,8 +79,16 @@ exports.handler = async function (event, context) {
 
 			if (data.Item) {
 				const product = JSON.parse(event.body);
-				const result = await updateProduct(productId, product);
-				console.log(result);
+				await updateProduct(productId, product);
+
+				product.id = productId;
+				const response = await createProductEvent(
+					product,
+					"PRODUCT_UPDATED",
+					"doralice",
+					lambdaRequestId
+				);
+				console.log(response);
 
 				return {
 					statusCode: 200,
@@ -88,8 +106,22 @@ exports.handler = async function (event, context) {
 			const data = await getProductById(productId);
 
 			if (data.Item) {
-				const result = await deleteProduct(productId);
-				console.log(result);
+				// dispara a execução das duas em paralelo
+				const deleteResultPromise = deleteProduct(productId);
+				const eventResultPromise = awaitcreateProductEvent(
+					data.Item,
+					"PRODUCT_DELETED",
+					"clotilde",
+					lambdaRequestId
+				);
+
+				// aguarda as duas promise serem resolvidas
+				const results = await Promise.all(
+					deleteResultPromise,
+					eventResultPromise
+				);
+				console.log(results[0]);
+				console.log(results[1]);
 
 				return {
 					statusCode: 200,
@@ -207,6 +239,30 @@ function deleteProduct(productId) {
 	};
 	try {
 		return ddbClient.delete(params).promise();
+	} catch (err) {
+		console.log(err);
+	}
+}
+
+/**
+ * CREATE PRODUCT EVENT
+ */
+function createProductEvent(product, eventType, username, lambdaRequestId) {
+	const params = {
+		FunctionName: productEventsFunctionName,
+		InvocationType: "RequestResponse",
+		Payload: JSON.stringify({
+			productEvent: {
+				requestId: lambdaRequestId,
+				eventType,
+				productId: product.id,
+				productCode: product.code,
+				username,
+			},
+		}),
+	};
+	try {
+		return lambdaClient.invoke(params).promise();
 	} catch (err) {
 		console.log(err);
 	}
