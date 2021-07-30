@@ -250,7 +250,7 @@ function deleteProduct(productId) {
 function createProductEvent(product, eventType, username, lambdaRequestId) {
 	const params = {
 		FunctionName: productEventsFunctionName,
-		InvocationType: "RequestResponse",
+		InvocationType: "Event",
 		Payload: JSON.stringify({
 			productEvent: {
 				requestId: lambdaRequestId,
