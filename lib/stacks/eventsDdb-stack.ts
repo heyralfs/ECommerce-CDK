@@ -19,14 +19,15 @@ export class EventsDdbStack extends cdk.Stack {
 			},
 			timeToLiveAttribute: "ttl",
 			removalPolicy: cdk.RemovalPolicy.DESTROY,
-			billingMode: dynamodb.BillingMode.PROVISIONED,
-			readCapacity: 1,
-			writeCapacity: 1,
+			billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+			// readCapacity: 1,
+			// writeCapacity: 1,
 		});
 
 		/**
 		 * Auto scaling config
 		 */
+		/*
 		const readScale = this.table.autoScaleReadCapacity({
 			maxCapacity: 4,
 			minCapacity: 1,
@@ -39,7 +40,6 @@ export class EventsDdbStack extends cdk.Stack {
 			// se fez um downScaling, não faz outro em menos de 60s
 			scaleOutCooldown: cdk.Duration.seconds(60),
 		});
-
 		const writeScale = this.table.autoScaleWriteCapacity({
 			maxCapacity: 4,
 			minCapacity: 1,
@@ -49,5 +49,6 @@ export class EventsDdbStack extends cdk.Stack {
 			scaleInCooldown: cdk.Duration.seconds(60),
 			scaleOutCooldown: cdk.Duration.seconds(60),
 		});
+		*/
 	}
 }

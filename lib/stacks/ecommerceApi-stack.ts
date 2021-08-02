@@ -10,6 +10,7 @@ export class ECommerceApiStack extends cdk.Stack {
 		scope: cdk.Construct,
 		id: string,
 		productsHandler: lambdaNodeJS.NodejsFunction,
+		ordersHandler: lambdaNodeJS.NodejsFunction,
 		props?: cdk.StackProps
 	) {
 		super(scope, id, props);
@@ -49,7 +50,8 @@ export class ECommerceApiStack extends cdk.Stack {
 		/**
 		 * Api Resources & Methods
 		 */
-		// lambda integration
+
+		// /products
 		const productsFunctionIntegration = new apigateway.LambdaIntegration(
 			productsHandler,
 			{
@@ -58,7 +60,6 @@ export class ECommerceApiStack extends cdk.Stack {
 				},
 			}
 		);
-		// /products
 		const productsResource = api.root.addResource("products");
 
 		// GET /products
@@ -80,6 +81,25 @@ export class ECommerceApiStack extends cdk.Stack {
 		productsIdResource.addMethod("DELETE", productsFunctionIntegration);
 
 		// /orders
+		const ordersFunctionIntegration = new apigateway.LambdaIntegration(
+			ordersHandler,
+			{
+				requestTemplates: {
+					"application/json": '{"statusCode": "200"}',
+				},
+			}
+		);
+		const ordersResource = api.root.addResource("/orders");
+
+		// GET /orders
+		ordersResource.addMethod("GET", ordersFunctionIntegration);
+
+		// POST /orders
+		ordersResource.addMethod("POST", ordersFunctionIntegration);
+
+		// DELETE /orders
+		ordersResource.addMethod("DELETE", ordersFunctionIntegration);
+
 		// /events
 		// /invoices
 
