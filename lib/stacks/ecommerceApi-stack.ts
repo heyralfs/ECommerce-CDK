@@ -89,7 +89,7 @@ export class ECommerceApiStack extends cdk.Stack {
 				},
 			}
 		);
-		const ordersResource = api.root.addResource("/orders");
+		const ordersResource = api.root.addResource("orders");
 
 		// GET /orders
 		ordersResource.addMethod("GET", ordersFunctionIntegration);
