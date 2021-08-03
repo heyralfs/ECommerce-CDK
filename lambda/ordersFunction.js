@@ -6,6 +6,7 @@ const xRay = AWSXRay.captureAWS(require("aws-sdk"));
 
 const productsDdb = process.env.PRODUCTS_DDB;
 const ordersDdb = process.env.ORDERS_DDB;
+const orderEventsTopicArn = process.env.ORDER_EVENTS_TOPIC_ARN;
 const awsRegion = process.env.AWS_REGION;
 
 AWS.config.update({
@@ -13,6 +14,7 @@ AWS.config.update({
 });
 
 const ddbClient = new AWS.DynamoDB.DocumentClient();
+const snsClient = new AWS.SNS({ apiVersion: "2010-03-31" });
 
 exports.handler = async function (event, context) {
 	const method = event.httpMethod;
@@ -82,17 +84,26 @@ exports.handler = async function (event, context) {
 			const orderRequest = JSON.parse(event.body);
 			const result = await fetchProducts(orderRequest);
 			if (
-				result.Responses.products.length ===
+				result.Responses[productsDdb].length ===
 				orderRequest.productIds.length
 			) {
 				const products = [];
-				result.Responses.products.forEach((product) => {
+				result.Responses[productsDdb].forEach((product) => {
 					console.log(product);
 					products.push(product);
 				});
 
 				const orderCreated = await createOrder(orderRequest, products);
 				console.log(orderCreated);
+
+				const eventResult = await sendOrderEvent(
+					orderCreated,
+					"ORDER_CREATED",
+					lambdaRequestId
+				);
+				console.log(
+					`Order created event sent - OrderId: ${orderCreated.sk} - MessageId: ${eventResult.MessageId}`
+				);
 
 				return {
 					statusCode: 201,
@@ -118,10 +129,25 @@ exports.handler = async function (event, context) {
 					event.queryStringParameters.orderId
 				);
 				if (data.Item) {
-					await deleteOrder(
+					const deleteOrderPromise = deleteOrder(
 						event.queryStringParameters.username,
 						event.queryStringParameters.orderId
 					);
+					const deleteOrderEventPromise = sendOrderEvent(
+						data.Item,
+						"ORDER_DELETED",
+						lambdaRequestId
+					);
+
+					const results = await Promise.all([
+						deleteOrderPromise,
+						deleteOrderEventPromise,
+					]);
+
+					console.log(
+						`Order deleted event sent - OrderId: ${data.Item.sk} - MessageId: ${results[1].MessageId}`
+					);
+
 					return {
 						statusCode: 200,
 						body: JSON.stringify(convertToOrderResponse(data.Item)),
@@ -149,7 +175,6 @@ function fetchProducts(orderRequest) {
 	});
 	const params = {
 		RequestItems: {
-			// products<Table.TableName>: {
 			[productsDdb]: {
 				Keys: keys,
 			},
@@ -293,5 +318,42 @@ function deleteOrder(username, orderId) {
 		return ddbClient.delete(params).promise();
 	} catch (err) {
 		return err;
+	}
+}
+
+/**
+ * Send order event function
+ */
+function sendOrderEvent(order, eventType, lambdaRequestId) {
+	const productCodes = [];
+	order.products.forEach((product) => {
+		productCodes.push(product.code);
+	});
+	const orderEvent = {
+		username: order.pk,
+		orderId: order.sk,
+		shipping: order.shipping,
+		productCodes,
+		requestId: lambdaRequestId,
+	};
+	const envelope = {
+		eventType,
+		data: JSON.stringify(orderEvent),
+	};
+	const params = {
+		Message: JSON.stringify(envelope),
+		MessageAttributes: {
+			["eventType"]: {
+				DataType: "String",
+				StringValue: eventType,
+			},
+		},
+		TopicArn: orderEventsTopicArn,
+	};
+
+	try {
+		return snsClient.publish(params).promise();
+	} catch (err) {
+		console.log(err);
 	}
 }
