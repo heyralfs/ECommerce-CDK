@@ -2,6 +2,8 @@ import * as cdk from "@aws-cdk/core";
 import * as lambda from "@aws-cdk/aws-lambda";
 import * as lambdaNodeJS from "@aws-cdk/aws-lambda-nodejs";
 import * as dynamodb from "@aws-cdk/aws-dynamodb";
+import * as sqs from "@aws-cdk/aws-sqs";
+import { classDeclaration } from "@babel/types";
 
 export class ProductEventsFunctionStack extends cdk.Stack {
 	readonly handler: lambdaNodeJS.NodejsFunction;
@@ -13,6 +15,11 @@ export class ProductEventsFunctionStack extends cdk.Stack {
 		props?: cdk.StackProps
 	) {
 		super(scope, id, props);
+
+		const dlq = new sqs.Queue(this, "ProductEventsDlq", {
+			queueName: "product-events-dlq",
+			retentionPeriod: cdk.Duration.days(10),
+		});
 
 		this.handler = new lambdaNodeJS.NodejsFunction(
 			this,
@@ -31,6 +38,8 @@ export class ProductEventsFunctionStack extends cdk.Stack {
 				environment: {
 					EVENTS_DDB: eventsDdb.tableName,
 				},
+				deadLetterQueueEnabled: true,
+				deadLetterQueue: dlq,
 			}
 		);
 
