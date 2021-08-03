@@ -14,6 +14,7 @@ export class OrdersApplicationStack extends cdk.Stack {
 		scope: cdk.Construct,
 		id: string,
 		productsDdb: dynamodb.Table,
+		eventsDdb: dynamodb.Table,
 		props?: cdk.StackProps
 	) {
 		super(scope, id, props);
@@ -81,19 +82,12 @@ export class OrdersApplicationStack extends cdk.Stack {
 		);
 
 		/**
-		 * Grant permissions
-		 */
-		productsDdb.grantReadData(this.ordersHandler);
-		ordersDdb.grantReadWriteData(this.ordersHandler);
-		ordersTopic.grantPublish(this.ordersHandler);
-
-		/**
 		 * Order Events Queue (and DLQ)
 		 */
 		const orderEventsDlq = new sqs.Queue(this, "OrderEventsDlq", {
 			queueName: "order-events-dlq",
 		});
-		const orderEvents = new sqs.Queue(this, "OrderEvents", {
+		const orderEventsQueue = new sqs.Queue(this, "OrderEvents", {
 			queueName: "order-events",
 			deadLetterQueue: {
 				queue: orderEventsDlq,
@@ -102,7 +96,7 @@ export class OrdersApplicationStack extends cdk.Stack {
 		});
 		// inscreve a fila no tópico
 		ordersTopic.addSubscription(
-			new subs.SqsSubscription(orderEvents, {
+			new subs.SqsSubscription(orderEventsQueue, {
 				filterPolicy: {
 					eventType: sns.SubscriptionFilter.stringFilter({
 						allowlist: ["ORDER_CREATED", "ORDER_DELETED"],
@@ -110,5 +104,40 @@ export class OrdersApplicationStack extends cdk.Stack {
 				},
 			})
 		);
+
+		/**
+		 * Order events function
+		 */
+		const orderEventsHandler = new lambdaNodeJS.NodejsFunction(
+			this,
+			"OrderEventsFuncion",
+			{
+				functionName: "OrderEventsFunction",
+				entry: "lambda/orderEventsFunction.js",
+				handler: "handler",
+				bundling: {
+					minify: false,
+					sourceMap: false,
+				},
+				tracing: lambda.Tracing.ACTIVE,
+				memorySize: 128,
+				timeout: cdk.Duration.seconds(30),
+				environment: {
+					EVENTS_DDB: eventsDdb.tableName,
+				},
+			}
+		);
+		// define a fonte de eventos do lambda como sendo a fila,
+		// ou seja, caiu a mensagem na fila, invoca o lambda
+		orderEventsHandler.addEventSource(new SqsEventSource(orderEventsQueue));
+
+		/**
+		 * Grant permissions
+		 */
+		productsDdb.grantReadData(this.ordersHandler);
+		ordersDdb.grantReadWriteData(this.ordersHandler);
+		ordersTopic.grantPublish(this.ordersHandler);
+		eventsDdb.grantWriteData(orderEventsHandler);
+		orderEventsQueue.grantConsumeMessages(orderEventsHandler);
 	}
 }

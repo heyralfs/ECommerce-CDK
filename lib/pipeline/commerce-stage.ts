@@ -36,9 +36,7 @@ export class ECommerceStage extends cdk.Stage {
 			this,
 			"ProductEventsFunction",
 			eventsDdbStack.table,
-			{
-				tags,
-			}
+			{ tags }
 		);
 		productEventsFunctionStack.addDependency(eventsDdbStack);
 
@@ -62,9 +60,11 @@ export class ECommerceStage extends cdk.Stage {
 			this,
 			"OrdersApplication",
 			productsDdbStack.table,
+			eventsDdbStack.table,
 			{ tags }
 		);
 		ordersApplicationStack.addDependency(productsDdbStack);
+		ordersApplicationStack.addDependency(eventsDdbStack);
 
 		/**
 		 * ECOMMERCE API STACK

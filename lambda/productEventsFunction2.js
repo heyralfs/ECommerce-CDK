@@ -1,7 +1,5 @@
 const AWS = require("aws-sdk");
 const AWSXRay = require("aws-xray-sdk-core");
-const { createVariableStatement } = require("typescript");
-const uuid = require("uuid");
 
 const xRay = AWSXRay.captureAWS(require("aws-sdk"));
 
@@ -48,7 +46,10 @@ function createEvent(productEvent) {
 			createdAt: timestamp,
 			requestId: productEvent.requestId,
 			eventType: productEvent.eventType,
-			productId: productEvent.productID,
+			info: {
+				productId: productEvent.productId,
+			},
+			// productId: productEvent.productId,
 		},
 	};
 
