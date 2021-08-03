@@ -108,7 +108,7 @@ exports.handler = async function (event, context) {
 			if (data.Item) {
 				// dispara a execução das duas em paralelo
 				const deleteResultPromise = deleteProduct(productId);
-				const eventResultPromise = awaitcreateProductEvent(
+				const eventResultPromise = createProductEvent(
 					data.Item,
 					"PRODUCT_DELETED",
 					"clotilde",
