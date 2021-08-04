@@ -14,81 +14,66 @@ const ddbClient = new AWS.DynamoDB.DocumentClient();
 
 exports.handler = async function (event, context) {
 	if (event.resource === "/products/events/{code}") {
-		// GET /products/events/{code}
-		const data = await getEventsByCode(events.pathParameters.code);
-
+		//GET /products/events/{code}
+		const data = await getEventsByCode(event.pathParameters.code);
 		return {
-			statusCode: 200,
-			body: JSON.stringify(convertItemToEvents(data.Items)),
+			body: JSON.stringify(convertItemsToEvents(data.Items)),
 		};
 	} else if (event.resource === "/products/events/{code}/{event}") {
-		// GET /products/events/{code}/{event}
-		const data = await getEventsByCodeAndEventType(
+		//GET /products/events/{code}/{event}
+		const data = await getEventsByCodeAndEvent(
 			event.pathParameters.code,
 			event.pathParameters.event
 		);
-
 		return {
-			statusCode: 200,
-			body: JSON.stringify(convertItemToEvents(data.Items)),
+			body: JSON.stringify(convertItemsToEvents(data.Items)),
 		};
 	} else if (event.resource === "/products/events") {
+		//with Global Secondary Index
+		//GET /products/events?username=matilde
 		if (
 			event.queryStringParameters &&
 			event.queryStringParameters.username
 		) {
-			// with Global Secondary Index
-			// GET /products/events?username=matilde
 			const data = await getEventsByUsername(
 				event.queryStringParameters.username
 			);
-
 			return {
-				statusCode: 200,
-				body: JSON.stringify(convertItemToEvents(data.Items)),
+				body: JSON.stringify(convertItemsToEvents(data.Items)),
 			};
 		} else if (
 			event.queryStringParameters &&
 			event.queryStringParameters.username2
 		) {
-			// without Global Secondary Index
-			// GET /products/events?username2=matilde
+			//without Global Secondary Index - GSI
+			//GET /products/events?username2=doralice
 			const data = await getEventsByUsername2(
 				event.queryStringParameters.username2
 			);
-
 			return {
-				statusCode: 200,
-				body: JSON.stringify(convertItemToEvents(data.Items)),
+				body: JSON.stringify(convertItemsToEvents(data.Items)),
 			};
 		}
 	}
-
 	return {
 		statusCode: 400,
-		body: JSON.stringify("Bad request!"),
+		body: JSON.stringify("Bad request"),
 	};
 };
 
-/**
- * Convert items to events
- */
-function convertItemToEvents(items) {
+function convertItemsToEvents(items) {
 	return items.map((item) => {
 		return {
 			createdAt: item.createdAt,
-			eventType: item.sk.split("#")[0], // sk = <eventType>#<timestamp>
+			eventType: item.sk.split("#")[0], //PRODUCT_CREATED#3213546
 			username: item.username,
 			productId: item.info.productId,
-			requestId: productId.requestId,
-			code: item.pk.split("_")[1], // #product_<CODE>
+			requestId: item.requestId,
+			code: item.pk.split("_")[1],
 		};
 	});
 }
 
-/**
- * Get events by code
- */
 function getEventsByCode(code) {
 	const params = {
 		TableName: eventsDdb,
@@ -98,22 +83,19 @@ function getEventsByCode(code) {
 		},
 	};
 	try {
-		return ddbClient.query(parms).promise();
+		return ddbClient.query(params).promise();
 	} catch (err) {
 		return err;
 	}
 }
 
-/**
- * Get events by code and event type
- */
-function getEventsByCodeAndEventType(code, eventType) {
+function getEventsByCodeAndEvent(code, event) {
 	const params = {
 		TableName: eventsDdb,
-		KeyConditionExpression: "pk = :code AND begins_with (sk, :eventType)",
+		KeyConditionExpression: "pk = :code AND begins_with (sk, :event)",
 		ExpressionAttributeValues: {
 			":code": `#product_${code}`,
-			":eventType": eventType,
+			":event": event, //PRODUCT_UPDATED
 		},
 	};
 	try {
@@ -123,32 +105,10 @@ function getEventsByCodeAndEventType(code, eventType) {
 	}
 }
 
-/**
- * Get events by username
- */
-// with Global Secondary Index
-function getEventsByUsername(username) {
-	const params = {
-		TableName: eventsDdb,
-		IndexName: "usernameIndex", // GSI name
-		KeyConditionExpression:
-			"username = :username AND begins_with (pl, :prefix)",
-		ExpressionAttributeValues: {
-			":username": username,
-			":prefix": "#product_",
-		},
-	};
-	try {
-		return ddbClient.query(params).promise();
-	} catch (err) {
-		return err;
-	}
-}
-// without Global Secondary Index - low performance, not recommended
 function getEventsByUsername2(username) {
 	const params = {
 		TableName: eventsDdb,
-		FilterExpression: "username = :username AND begins_with (pl, :prefix)",
+		FilterExpression: "username = :username AND begins_with(pk, :prefix)",
 		ExpressionAttributeValues: {
 			":username": username,
 			":prefix": "#product_",
@@ -156,6 +116,24 @@ function getEventsByUsername2(username) {
 	};
 	try {
 		return ddbClient.scan(params).promise();
+	} catch (err) {
+		return err;
+	}
+}
+
+function getEventsByUsername(username) {
+	const params = {
+		TableName: eventsDdb,
+		IndexName: "usernameIdx",
+		KeyConditionExpression:
+			"username = :username AND begins_with(pk, :prefix)",
+		ExpressionAttributeValues: {
+			":username": username,
+			":prefix": "#product_",
+		},
+	};
+	try {
+		return ddbClient.query(params).promise();
 	} catch (err) {
 		return err;
 	}
