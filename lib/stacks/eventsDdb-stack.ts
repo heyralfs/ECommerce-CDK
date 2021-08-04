@@ -25,6 +25,24 @@ export class EventsDdbStack extends cdk.Stack {
 		});
 
 		/**
+		 * Global Secondary Index
+		 */
+		this.table.addGlobalSecondaryIndex({
+			indexName: "usernameIdx",
+			partitionKey: {
+				name: "username",
+				type: dynamodb.AttributeType.STRING,
+			},
+			sortKey: {
+				name: "pk",
+				type: dynamodb.AttributeType.STRING,
+			},
+			projectionType: dynamodb.ProjectionType.ALL,
+			// projectionType: dynamodb.ProjectionType.INCLUDE,
+			// nonKeyAttributes: ["productId", ...],
+		});
+
+		/**
 		 * Auto scaling config
 		 */
 		/*
