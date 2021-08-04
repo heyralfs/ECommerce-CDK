@@ -11,6 +11,7 @@ export class ECommerceApiStack extends cdk.Stack {
 		id: string,
 		productsHandler: lambdaNodeJS.NodejsFunction,
 		ordersHandler: lambdaNodeJS.NodejsFunction,
+		productEventsFetchHandler: lambdaNodeJS.NodejsFunction,
 		props?: cdk.StackProps
 	) {
 		super(scope, id, props);
@@ -100,7 +101,37 @@ export class ECommerceApiStack extends cdk.Stack {
 		// DELETE /orders
 		ordersResource.addMethod("DELETE", ordersFunctionIntegration);
 
-		// /events
+		// products/events lambda integration
+		const productEventsFetchFunctionIntegration =
+			new apigateway.LambdaIntegration(productEventsFetchHandler, {
+				requestTemplates: {
+					"application/json": '{"statusCode": "200"}',
+				},
+			});
+
+		// GET /products/events
+		const productEventsResource = productsResource.addResource("events");
+		productEventsResource.addMethod(
+			"GET",
+			productEventsFetchFunctionIntegration
+		);
+
+		// GET /products/events/{code}
+		const productEventsByCodeResource =
+			productEventsResource.addResource("{code}");
+		productEventsByCodeResource.addMethod(
+			"GET",
+			productEventsFetchFunctionIntegration
+		);
+
+		// GET /products/events/{code}/{event}
+		const productEventsByCodeAndEventResource =
+			productEventsByCodeResource.addResource("{event}");
+		productEventsByCodeAndEventResource.addMethod(
+			"GET",
+			productEventsFetchFunctionIntegration
+		);
+
 		// /invoices
 
 		/**
