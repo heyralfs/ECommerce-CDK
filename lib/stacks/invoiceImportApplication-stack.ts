@@ -4,12 +4,19 @@ import * as lambdaNodeJS from "@aws-cdk/aws-lambda-nodejs";
 import * as dynamodb from "@aws-cdk/aws-dynamodb";
 import * as s3 from "@aws-cdk/aws-s3";
 import * as s3n from "@aws-cdk/aws-s3-notifications";
+import * as sqs from "@aws-cdk/aws-sqs";
+import { DynamoEventSource, SqsDlq } from "@aws-cdk/aws-lambda-event-sources";
 
 export class InvoiceImportApplicationStack extends cdk.Stack {
 	readonly importHandler: lambdaNodeJS.NodejsFunction;
 	readonly urlHandler: lambdaNodeJS.NodejsFunction;
 
-	constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
+	constructor(
+		scope: cdk.Construct,
+		id: string,
+		eventsDdb: dynamodb.Table,
+		props?: cdk.StackProps
+	) {
 		super(scope, id, props);
 
 		/**
@@ -38,6 +45,8 @@ export class InvoiceImportApplicationStack extends cdk.Stack {
 			},
 			removalPolicy: cdk.RemovalPolicy.DESTROY,
 			timeToLiveAttribute: "ttl",
+			// stream => geração de eventos
+			stream: dynamodb.StreamViewType.NEW_AND_OLD_IMAGES,
 		});
 
 		/**
@@ -97,5 +106,44 @@ export class InvoiceImportApplicationStack extends cdk.Stack {
 		// permissions
 		bucket.grantReadWrite(this.urlHandler);
 		invoicesDdb.grantReadWriteData(this.urlHandler);
+
+		/**
+		 * Invoice Events Handler
+		 */
+		const invoiceEventsHandler = new lambdaNodeJS.NodejsFunction(
+			this,
+			"InvoiceEventsFunction",
+			{
+				functionName: "InvoiceEventsFunction",
+				entry: "lambda/invoiceEventsFunction.js",
+				handler: "handler",
+				bundling: {
+					minify: false,
+					sourceMap: false,
+				},
+				tracing: lambda.Tracing.ACTIVE,
+				memorySize: 128,
+				timeout: cdk.Duration.seconds(30),
+				environment: {
+					EVENTS_DDB: eventsDdb.tableName,
+				},
+			}
+		);
+		// invoice events dlq
+		const invoiceEventsDlq = new sqs.Queue(this, "InvoiceEventsDlq", {
+			queueName: "invoice-events-dlq",
+		});
+		// subscrição da lambda no evento do dynamo
+		invoiceEventsHandler.addEventSource(
+			new DynamoEventSource(invoicesDdb, {
+				startingPosition: lambda.StartingPosition.TRIM_HORIZON,
+				batchSize: 5,
+				bisectBatchOnError: true,
+				onFailure: new SqsDlq(invoiceEventsDlq),
+				retryAttempts: 3,
+			})
+		);
+		// permissions
+		eventsDdb.grantWriteData(invoiceEventsHandler);
 	}
 }

@@ -84,7 +84,7 @@ exports.handler = async function (event, context) {
  */
 function createInvoiceTransaction(key, requestId, expiresIn) {
 	const timestamp = Date.now();
-	const ttl = ~~(timestamp / 1000 + 60 * 60);
+	const ttl = ~~(timestamp / 1000 + 60 * 3); // 3min
 
 	const params = {
 		TableName: invoicesDdb,
