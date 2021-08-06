@@ -20,6 +20,11 @@ exports.handler = async function (event, context) {
 	event.Records.forEach((record) => {
 		console.log(record);
 
+		// pode-se utilizar
+		// record.dynamodb.Keys.pk.S
+		// para verificar se evento é invoice ou transaction
+		// e economizar nos if/else abaixo
+
 		if (record.eventName === "INSERT") {
 			if (record.dynamodb.NewImage.pk.S.startsWith("#invoice")) {
 				// Invoice event
@@ -36,9 +41,9 @@ exports.handler = async function (event, context) {
 			}
 		} else if (record.eventName === "MODIFY") {
 		} else if (record.eventName === "REMOVE") {
-			if (record.dynamodb.NewImage.pk.S.startsWith("#invoice")) {
+			if (record.dynamodb.OldImage.pk.S.startsWith("#invoice")) {
 			} else if (
-				record.dynamodb.NewImage.pk.S.startsWith("#transaction")
+				record.dynamodb.OldImage.pk.S.startsWith("#transaction")
 			) {
 				// Invoice transaction event
 				console.log("Invoice transaction event received");
