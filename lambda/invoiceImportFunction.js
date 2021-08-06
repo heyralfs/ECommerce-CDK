@@ -105,7 +105,7 @@ function updateInvoiceTransaction(key, status) {
 			sk: key,
 		},
 		UpdateExpression: "set transactionStatus = :s",
-		ExpressionAttributesValues: {
+		ExpressionAttributeValues: {
 			":s": status,
 		},
 	};
