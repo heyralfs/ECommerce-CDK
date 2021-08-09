@@ -7,6 +7,7 @@ import { ProductEventsFunctionStack } from "../stacks/productEventsFunction-stac
 import { OrdersApplicationStack } from "../stacks/ordersApplication-stack";
 import { ProductEventsFetchFunctionStack } from "../stacks/productEventsFetchFunction-stack";
 import { InvoiceImportApplicationStack } from "../stacks/invoiceImportApplication-stack";
+import { InvoiceWSApiStack } from "../stacks/invoiceWSApi-stack";
 
 export class ECommerceStage extends cdk.Stage {
 	public readonly urlOutput: cdk.CfnOutput;
@@ -111,5 +112,14 @@ export class ECommerceStage extends cdk.Stage {
 		 * OUTPUT
 		 */
 		this.urlOutput = eCommerceApiStack.urlOutput;
+
+		/**
+		 * INVOICE WEBSOCKET API STACK
+		 */
+		const invoiceWSApiStack = new InvoiceWSApiStack(
+			this,
+			"InvoiceWSApiStack",
+			{ tags }
+		);
 	}
 }
