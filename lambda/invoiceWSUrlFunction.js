@@ -24,7 +24,7 @@ exports.handler = async function (event, context) {
 	console.log(event);
 
 	const lambdaRequestId = context.awsRequestId;
-	const connectionId = event.requestContent.connectionId;
+	const connectionId = event.requestContext.connectionId;
 
 	console.log(
 		`ConnectionId: ${connectionId} | Lambda RequestId: ${lambdaRequestId}`
