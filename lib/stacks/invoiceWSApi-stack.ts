@@ -300,6 +300,5 @@ export class InvoiceWSApiStack extends cdk.Stack {
 		);
 		// permissions
 		eventsDdb.grantWriteData(invoiceEventsHandler);
-		invoiceEventsDlq.addToResourcePolicy(wsApiPolicy);
 	}
 }
