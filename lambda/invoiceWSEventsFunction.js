@@ -15,7 +15,7 @@ const ddbClient = new AWS.DynamoDB.DocumentClient();
 exports.handler = async function (event, context) {
 	const promises = [];
 
-	event.Records.forEach((record) => {
+	event.Records.forEach(async (record) => {
 		console.log(record);
 
 		// pode-se utilizar
