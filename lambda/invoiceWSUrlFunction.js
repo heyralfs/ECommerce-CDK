@@ -6,7 +6,7 @@ const xRay = AWSXRay.captureAWS(require("aws-sdk"));
 
 const invoicesDdb = process.env.INVOICES_DDB;
 const bucketName = process.env.BUCKET_NAME;
-const invoiceWsApiEndpoint = process.env.INVOICE_WSAPI_ENDPOINT;
+const invoiceWsApiEndpoint = process.env.INVOICE_WSAPI_ENDPOINT.substring(6); // removes "ws://"
 const awsRegion = process.env.AWS_REGION;
 
 AWS.config.update({
