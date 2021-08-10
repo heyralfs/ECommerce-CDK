@@ -9,9 +9,15 @@ import * as s3n from "@aws-cdk/aws-s3-notifications";
 import * as iam from "@aws-cdk/aws-iam";
 import * as sqs from "@aws-cdk/aws-sqs";
 import { DynamoEventSource, SqsDlq } from "@aws-cdk/aws-lambda-event-sources";
+import * as events from "@aws-cdk/aws-events";
 
 export class InvoiceWSApiStack extends cdk.Stack {
-	constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
+	constructor(
+		scope: cdk.Construct,
+		id: string,
+		auditBus: events.EventBus,
+		props?: cdk.StackProps
+	) {
 		super(scope, id, props);
 
 		/**
@@ -170,6 +176,7 @@ export class InvoiceWSApiStack extends cdk.Stack {
 				timeout: cdk.Duration.seconds(30),
 				environment: {
 					INVOICES_DDB: invoicesDdb.tableName,
+					AUDIT_BUS_NAME: auditBus.eventBusName,
 				},
 			}
 		);
@@ -281,6 +288,7 @@ export class InvoiceWSApiStack extends cdk.Stack {
 				timeout: cdk.Duration.seconds(30),
 				environment: {
 					EVENTS_DDB: eventsDdb.tableName,
+					AUDIT_BUS_NAME: auditBus.eventBusName,
 				},
 			}
 		);

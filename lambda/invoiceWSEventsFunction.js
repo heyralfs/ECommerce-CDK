@@ -5,12 +5,14 @@ const xRay = AWSXRay.captureAWS(require("aws-sdk"));
 
 const awsRegion = process.env.AWS_REGION;
 const eventsDdb = process.env.EVENTS_DDB;
+const auditBusName = process.env.AUDIT_BUS_NAME;
 
 AWS.config.update({
 	region: awsRegion,
 });
 
 const ddbClient = new AWS.DynamoDB.DocumentClient();
+const eventBridgeClient = new AWS.EventBridge();
 
 exports.handler = async function (event, context) {
 	console.log(event);
@@ -65,7 +67,25 @@ exports.handler = async function (event, context) {
 					) {
 						console.log("Invoice processed");
 					} else {
-						//TODO - Generate audit envent
+						const params = {
+							Entries: [
+								{
+									Source: "app.invoice",
+									EventBusName: auditBusName,
+									DetailType: "invoice",
+									Time: new Date(),
+									Detail: JSON.stringify({
+										errorDetail: "TIMEOUT",
+										transactionId,
+									}),
+								},
+							],
+						};
+						const result = await eventBridgeClient
+							.putEvents(params)
+							.promise();
+						console.log(result);
+
 						console.log("Invoice import failed - timeout / error");
 						await sendInvoiceStatus(
 							apigwManagementApi,

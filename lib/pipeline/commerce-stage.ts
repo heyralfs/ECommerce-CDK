@@ -8,6 +8,7 @@ import { OrdersApplicationStack } from "../stacks/ordersApplication-stack";
 import { ProductEventsFetchFunctionStack } from "../stacks/productEventsFetchFunction-stack";
 import { InvoiceImportApplicationStack } from "../stacks/invoiceImportApplication-stack";
 import { InvoiceWSApiStack } from "../stacks/invoiceWSApi-stack";
+import { AuditEventBusStack } from "../stacks/auditEventBus-stack";
 
 export class ECommerceStage extends cdk.Stage {
 	public readonly urlOutput: cdk.CfnOutput;
@@ -19,6 +20,15 @@ export class ECommerceStage extends cdk.Stage {
 			["cost"]: "ECommerce",
 			["team"]: "heyralfs",
 		};
+
+		/**
+		 * AUDIT EVENT BUS STACK
+		 */
+		const auditiEventBusStack = new AuditEventBusStack(
+			this,
+			"AuditEventBus",
+			{ tags }
+		);
 
 		/**
 		 * PRODUCTS DDB STACK
@@ -64,10 +74,12 @@ export class ECommerceStage extends cdk.Stage {
 			"OrdersApplication",
 			productsDdbStack.table,
 			eventsDdbStack.table,
+			auditiEventBusStack.bus,
 			{ tags }
 		);
 		ordersApplicationStack.addDependency(productsDdbStack);
 		ordersApplicationStack.addDependency(eventsDdbStack);
+		ordersApplicationStack.addDependency(auditiEventBusStack);
 
 		/**
 		 * PRODUCT EVENTS FETCH FUNCTION STACK
@@ -119,7 +131,9 @@ export class ECommerceStage extends cdk.Stage {
 		const invoiceWSApiStack = new InvoiceWSApiStack(
 			this,
 			"InvoiceWSApiStack",
+			auditiEventBusStack.bus,
 			{ tags }
 		);
+		invoiceWSApiStack.addDependency(auditiEventBusStack);
 	}
 }

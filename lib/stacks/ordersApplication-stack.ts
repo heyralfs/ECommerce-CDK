@@ -6,6 +6,7 @@ import * as sns from "@aws-cdk/aws-sns";
 import * as subs from "@aws-cdk/aws-sns-subscriptions";
 import * as sqs from "@aws-cdk/aws-sqs";
 import { SqsEventSource } from "@aws-cdk/aws-lambda-event-sources";
+import * as events from "@aws-cdk/aws-events";
 
 export class OrdersApplicationStack extends cdk.Stack {
 	readonly ordersHandler: lambdaNodeJS.NodejsFunction;
@@ -15,6 +16,7 @@ export class OrdersApplicationStack extends cdk.Stack {
 		id: string,
 		productsDdb: dynamodb.Table,
 		eventsDdb: dynamodb.Table,
+		auditBus: events.EventBus,
 		props?: cdk.StackProps
 	) {
 		super(scope, id, props);
@@ -77,6 +79,7 @@ export class OrdersApplicationStack extends cdk.Stack {
 					PRODUCTS_DDB: productsDdb.tableName,
 					ORDERS_DDB: ordersDdb.tableName,
 					ORDER_EVENTS_TOPIC_ARN: ordersTopic.topicArn,
+					AUDIT_BUS_NAME: auditBus.eventBusName,
 				},
 			}
 		);

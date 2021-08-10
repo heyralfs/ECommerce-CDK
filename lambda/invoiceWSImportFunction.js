@@ -4,6 +4,7 @@ const AWSXRay = require("aws-xray-sdk-core");
 const xRay = AWSXRay.captureAWS(require("aws-sdk"));
 
 const invoicesDdb = process.env.INVOICES_DDB;
+const auditBusName = process.env.AUDIT_BUS_NAME;
 const awsRegion = process.env.AWS_REGION;
 
 AWS.config.update({
@@ -12,6 +13,7 @@ AWS.config.update({
 
 const ddbClient = new AWS.DynamoDB.DocumentClient();
 const s3Client = new AWS.S3();
+const eventBridgeClient = new AWS.EventBridge();
 
 exports.handler = async function (event, context) {
 	const key = event.Records[0].s3.object.key;
@@ -62,6 +64,26 @@ exports.handler = async function (event, context) {
 			]);
 		}
 	} else {
+		const params = {
+			Entries: [
+				{
+					Source: "app.invoice",
+					EventBusName: auditBusName,
+					DetailType: "invoice",
+					Time: new Date(),
+					Detail: JSON.stringify({
+						errorDetail: "FAIL_NO_INVOICE_NUMBER",
+						info: {
+							invoiceKey: key,
+							customerName: invoice.customerName,
+						},
+					}),
+				},
+			],
+		};
+		const result = await eventBridgeClient.putEvents(params).promise();
+		console.log(result);
+
 		if (invoiceTransaction) {
 			await Promise.all([
 				updateInvoiceTransaction(key, "FAIL_NO_INVOICE_NUMBER"),
