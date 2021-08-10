@@ -142,5 +142,6 @@ export class OrdersApplicationStack extends cdk.Stack {
 		ordersTopic.grantPublish(this.ordersHandler);
 		eventsDdb.grantWriteData(orderEventsHandler);
 		orderEventsQueue.grantConsumeMessages(orderEventsHandler);
+		auditBus.grantPutEventsTo(this.ordersHandler);
 	}
 }

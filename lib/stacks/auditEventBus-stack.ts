@@ -127,5 +127,14 @@ export class AuditEventBusStack extends cdk.Stack {
 				})
 			)
 		);
+
+		// arquivar eventos
+		this.bus.archive("BusArchive", {
+			archiveName: "auditEvents",
+			eventPattern: {
+				source: ["app.order"],
+			},
+			retention: cdk.Duration.days(10),
+		});
 	}
 }

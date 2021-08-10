@@ -308,5 +308,9 @@ export class InvoiceWSApiStack extends cdk.Stack {
 		);
 		// permissions
 		eventsDdb.grantWriteData(invoiceEventsHandler);
+
+		// bus permissions
+		auditBus.grantPutEventsTo(invoiceEventsHandler);
+		auditBus.grantPutEventsTo(invoiceImportHandler);
 	}
 }
