@@ -32,7 +32,7 @@ export class AuditEventBusStack extends cdk.Stack {
 				source: ["app.order"],
 				detailType: ["order"],
 				detail: {
-					reason: ["PRODUC_NOT_FOUND"],
+					reason: ["PRODUCT_NOT_FOUND"],
 				},
 			},
 		});
